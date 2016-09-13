@@ -13,4 +13,5 @@ int main()
     cout << m.toString() << endl;
     m.setValue(3, 1, 1);
     cout << m.toString() << endl;
+//    Matrix<int>::Row r;
 }
