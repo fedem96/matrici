@@ -8,8 +8,6 @@
 #include <string>
 #include <stdexcept>
 #include <vector>
-#include "Row.h"
-#include "Column.h"
 
 using namespace std;
 
@@ -18,27 +16,28 @@ class Matrix
 {
 public:
     Matrix(int numRows, int numColumns);
-    Matrix(int numRows, int numColumns, t defaultValue);
+    Matrix(int numRows, int numColumns, t *values);
     Matrix(const Matrix<t> &other);
     ~Matrix();
 
     int getNumColumns() const;
     int getNumRows() const;
 
+    void setAllValues(const t &value);
     void setValue(int rowIndex, int columnIndex, const t &value) throw(out_of_range);
     t getValue(int rowIndex, int columnIndex) const throw(out_of_range);
 
-    void pushRow(Row<t> row) throw(invalid_argument);
-    void pushColumn(Column<t> col) throw(invalid_argument);;
+    void pushRow(Matrix<t> row) throw(invalid_argument);
+    void pushColumn(Matrix<t> col) throw(invalid_argument);
 
-    void insertRow(int beforeOfIndex, Row<t> row) throw(out_of_range, invalid_argument);
-    void insertColumn(int beforeOfIndex, Column<t> col) throw(out_of_range, invalid_argument);
+    void insertRow(int beforeOfIndex, Matrix<t> rowMat) throw(out_of_range, invalid_argument);
+    void insertColumn(int beforeOfIndex, Matrix<t> colMat) throw(out_of_range, invalid_argument);
 
-    void setRow(int rowIndex, Row<t> row) throw(out_of_range, invalid_argument);
-    void setColumn(int columnIndex, Column<t> col) throw(out_of_range, invalid_argument);
+    void setRow(int rowIndex, Matrix<t> rowMat) throw(out_of_range, invalid_argument);
+    void setColumn(int columnIndex, Matrix<t> colMat) throw(out_of_range, invalid_argument);
 
-    Row<t> getRow(int rowIndex) const throw(out_of_range);
-    Column<t> getColumn(int columnIndex) const throw(out_of_range);
+    Matrix<t> getRow(int rowIndex) const throw(out_of_range);
+    Matrix<t> getColumn(int columnIndex) const throw(out_of_range);
 
     void removeRow(int rowIndex) throw(out_of_range);
     void removeColumn(int columnIndex) throw(out_of_range);
@@ -68,11 +67,10 @@ template <typename t>
 Matrix<t>::Matrix(int numRows, int numColumns) : numRows(numRows), numColumns(numColumns), data(new t[numRows * numColumns]) {}
 
 template <typename t>
-Matrix<t>::Matrix(int numRows, int numColumns, t defaultValue) : Matrix(numRows, numColumns)
+Matrix<t>::Matrix(int numRows, int numColumns, t *values) : Matrix(numRows, numColumns)
 {
-    for(int col = 0; col < numColumns; col++)
-        for(int row = 0; row < numRows; row++)
-            data[col + row*numColumns] = defaultValue;
+    for(int i = 0; i < numRows * numColumns; i++)
+        data[i] = values[i];
 }
 
 template <typename t>
@@ -102,6 +100,13 @@ int Matrix<t>::getNumColumns() const
 }
 
 template <typename t>
+void Matrix<t>::setAllValues(const t &value)
+{
+    for(int i = 0; i < numRows*numColumns; i++)
+        data[i] = value;
+}
+
+template <typename t>
 void Matrix<t>::setValue(int rowIndex, int columnIndex, const t &value) throw(out_of_range)
 {
     if(rowIndex < 0 || rowIndex >= numRows || columnIndex < 0 || columnIndex >= numColumns)
@@ -118,25 +123,25 @@ t Matrix<t>::getValue(int rowIndex, int columnIndex) const throw(out_of_range)
 }
 
 template <typename t>
-void Matrix<t>::pushRow(Row<t> row) throw(invalid_argument)
+void Matrix<t>::pushRow(Matrix<t> row) throw(invalid_argument)
 {
     insertRow(numRows, row);
 }
 
 template <typename t>
-void Matrix<t>::pushColumn(Column<t> col) throw(invalid_argument)
+void Matrix<t>::pushColumn(Matrix<t> col) throw(invalid_argument)
 {
     insertColumn(numColumns, col);
 }
 
 template <typename t>
-void Matrix<t>::insertRow(int beforeOfIndex, Row<t> row) throw(out_of_range, invalid_argument)
+void Matrix<t>::insertRow(int beforeOfIndex, Matrix<t> rowMat) throw(out_of_range, invalid_argument)
 {
     if(beforeOfIndex < 0 || beforeOfIndex > numRows)
         throw out_of_range("Indice non valido");
 
-    if(numColumns != row.getWidth())
-        throw invalid_argument("Matrice e riga hanno larghezze differenti");
+    if(numColumns != rowMat.numColumns || rowMat.numRows != 1)
+        throw invalid_argument("Matrice di dimensioni non valide");
 
     t* newData = new t[++numRows * numColumns];
     for(int i = 0; i < numRows * numColumns; i++)
@@ -145,7 +150,7 @@ void Matrix<t>::insertRow(int beforeOfIndex, Row<t> row) throw(out_of_range, inv
         if(rowIndex < beforeOfIndex)
             newData[i] = data[i];
         else if(rowIndex == beforeOfIndex)
-            newData[i] = row(i % numColumns);
+            newData[i] = rowMat(0, i % numColumns);
         else // rowIndex > beforeOfIndex
             newData[i] = data[i - numColumns];
     }
@@ -154,13 +159,13 @@ void Matrix<t>::insertRow(int beforeOfIndex, Row<t> row) throw(out_of_range, inv
 }
 
 template <typename t>
-void Matrix<t>::insertColumn(int beforeOfIndex, Column<t> col) throw(out_of_range, invalid_argument)
+void Matrix<t>::insertColumn(int beforeOfIndex, Matrix<t> colMat) throw(out_of_range, invalid_argument)
 {
     if(beforeOfIndex < 0 || beforeOfIndex > numColumns)
         throw out_of_range("Indice non valido");
 
-    if(numRows != col.getHeight())
-        throw invalid_argument("Matrice e colonna hanno altezze differenti");
+    if(numRows != colMat.numRows || colMat.numColumns != 1)
+        throw invalid_argument("Matrice di dimensioni non valide");
 
     t* newData = new t[numRows * ++numColumns];
     for(int i = 0; i < numRows * numColumns; i++)
@@ -170,7 +175,7 @@ void Matrix<t>::insertColumn(int beforeOfIndex, Column<t> col) throw(out_of_rang
         if(columnIndex < beforeOfIndex)
             newData[i] = data[i - rowIndex];
         else if(columnIndex == beforeOfIndex)
-            newData[i] = col(rowIndex);
+            newData[i] = colMat(rowIndex, 0);
         else // columnIndex > beforeOfIndex
             newData[i] = data[i - (rowIndex+1)];
     }
@@ -179,53 +184,53 @@ void Matrix<t>::insertColumn(int beforeOfIndex, Column<t> col) throw(out_of_rang
 }
 
 template <typename t>
-void Matrix<t>::setRow(int rowIndex, Row<t> row) throw(out_of_range, invalid_argument)
+void Matrix<t>::setRow(int rowIndex, Matrix<t> rowMat) throw(out_of_range, invalid_argument)
 {
     if(rowIndex < 0 || rowIndex >= numRows)
         throw out_of_range("Indice non valido");
 
-    if(numColumns != row.getWidth())
-        throw invalid_argument("Matrice e riga hanno larghezze differenti");
+    if(numColumns != rowMat.numColumns || rowMat.numRows != 1)
+        throw invalid_argument("Matrice di dimensioni non valide");
 
     for(int i = 0; i < numColumns; i++)
-        (*this)(rowIndex, i) = row(i);
+        (*this)(rowIndex, i) = rowMat(0, i);
 }
 
 template <typename t>
-void Matrix<t>::setColumn(int columnIndex, Column<t> col) throw(out_of_range, invalid_argument)
+void Matrix<t>::setColumn(int columnIndex, Matrix<t> colMat) throw(out_of_range, invalid_argument)
 {
     if(columnIndex < 0 || columnIndex >= numColumns)
         throw out_of_range("Indice non valido");
 
-    if(numRows != col.getHeight())
-        throw invalid_argument("Matrice e colonna hanno altezze differenti");
+    if(numRows != colMat.numRows || colMat.numColumns != 1)
+        throw invalid_argument("Matrice di dimensioni non valide");
 
     for(int i = 0; i < numRows; i++)
-        (*this)(i, columnIndex) = col(i);
+        (*this)(i, columnIndex) = colMat(i, 0);
 }
 
 template <typename t>
-Row<t> Matrix<t>::getRow(int rowIndex) const throw(out_of_range)
+Matrix<t> Matrix<t>::getRow(int rowIndex) const throw(out_of_range)
 {
     if(rowIndex < 0 || rowIndex >= numRows)
         throw out_of_range("Indice non valido");
 
-    Row<t> output(numColumns);
+    Matrix<t> output(1, numColumns);
     for(int i = 0; i < numColumns; i++)
-        output(i) = (*this)(rowIndex, i);
+        output(0, i) = (*this)(rowIndex, i);
 
     return output;
 }
 
 template <typename t>
-Column<t> Matrix<t>::getColumn(int columnIndex) const throw(out_of_range)
+Matrix<t> Matrix<t>::getColumn(int columnIndex) const throw(out_of_range)
 {
     if(columnIndex < 0 || columnIndex >= numColumns)
         throw out_of_range("Indice non valido");
 
-    Column<t> output(numRows);
+    Matrix<t> output(numRows, 1);
     for(int i = 0; i < numRows; i++)
-        output(i) = (*this)(i, columnIndex);
+        output(i, 0) = (*this)(i, columnIndex);
 
     return output;
 }
@@ -242,7 +247,7 @@ void Matrix<t>::removeRow(int rowIndex) throw(out_of_range)
         if(i/numColumns < rowIndex)
             newData[i] = data[i];
         else
-            newData[i] = data[i - numColumns];
+            newData[i] = data[i + numColumns];
     }
     delete[](data);
     data = newData;
@@ -254,14 +259,14 @@ void Matrix<t>::removeColumn(int columnIndex) throw(out_of_range)
     if(columnIndex < 0 || columnIndex >= numColumns)
         throw out_of_range("Indice non valido");
 
-    t* newData = new t[--numRows * numColumns];
+    t* newData = new t[numRows * --numColumns];
     for(int i = 0; i < numRows * numColumns; i++)
     {
         int rowIndex = i/numColumns;
-        if(i%numRows < columnIndex)
-            newData[i] = data[i - rowIndex];
+        if(i%(numRows+1) < columnIndex)
+            newData[i] = data[i + rowIndex];
         else
-            newData[i] = data[i - (rowIndex+1)];
+            newData[i] = data[i + 1 + rowIndex];
     }
     delete[](data);
     data = newData;
@@ -330,7 +335,8 @@ Matrix<t> Matrix<t>::operator*(const Matrix<t> &other) const throw(invalid_argum
     if(numColumns != other.numRows)
         throw invalid_argument("Dimensioni non congrue per prodotto");
 
-    Matrix<t> result(numRows, other.numColumns, 0);
+    Matrix<t> result(numRows, other.numColumns);
+    result.setAllValues(0);
     for(int row = 0; row < numRows; row++)
         for(int col = 0; col < other.numColumns; col++)
             for (int i = 0; i < numColumns; i++)
@@ -425,7 +431,7 @@ Matrix<t> Matrix<t>::transpose() const
 template <typename t>
 string Matrix<t>::toString() const
 {
-    string toReturn = "Matrix object, " + to_string(numRows) + " rows, " + to_string(numColumns) + " columns:\n";
+    string toReturn = "Matrix of " + to_string(numRows) + " rows and " + to_string(numColumns) + " columns:\n";
     for(int row = 0; row < numRows; row++)
     {
         toReturn += "\t";

@@ -8,7 +8,8 @@
 TEST(Matrix, Constructor)
 {
     const int defValue = 11;
-    Matrix<int> m(6, 9, defValue);
+    Matrix<int> m(6, 9);
+    m.setAllValues(defValue);
     ASSERT_EQ(m.getNumRows(), 6);
     ASSERT_EQ(m.getNumColumns(), 9);
     ASSERT_EQ(m.getValue(1,1), defValue);
@@ -18,7 +19,12 @@ TEST(Matrix, Constructor)
 
 TEST(Matrix, Operators)
 {
-    Matrix<int> m1(4, 3, 0), m2(3, 2, 1), m3(4, 3, 0), m4(4, 3, 0), m5(4, 2, 0);
+    Matrix<int> m1(4, 3), m2(3, 2), m3(4, 3), m4(4, 3), m5(4, 2);
+    m1.setAllValues(0);
+    m2.setAllValues(1);
+    m3.setAllValues(0);
+    m4.setAllValues(0);
+    m5.setAllValues(0);
     m1.setValue(3, 2, 4);
     m3.setValue(3, 2, 4);
 
@@ -67,7 +73,8 @@ TEST(Matrix, Operators)
 
 TEST(Matrix, Transpose)
 {
-    Matrix<float> mat(3, 2, 0);
+    Matrix<float> mat(3, 2);
+    mat.setAllValues(0);
     mat.setValue(1, 1, 1);
     mat.setValue(2, 1, 3);
     Matrix<float> trMat = mat.transpose();
@@ -81,7 +88,8 @@ TEST(Matrix, Transpose)
 
 TEST(Matrix, SubMatrix)
 {
-    Matrix<int> mat(4, 3, 1);
+    Matrix<int> mat(4, 3);
+    mat.setAllValues(1);
     mat.setValue(0, 0, 0);
     mat.setValue(2, 0, 3);
     mat.setValue(1, 1, 4);
@@ -98,7 +106,8 @@ TEST(Matrix, Determinant)
     Matrix<int> errMat(3, 2);
     ASSERT_THROW(errMat.determinant(), std::logic_error);
 
-    Matrix<int> mat(3, 3, 1);
+    Matrix<int> mat(3, 3);
+    mat.setAllValues(1);
     mat.setValue(0, 0, 5);
     mat.setValue(0, 2, 2);
     mat.setValue(1, 1, 17);
@@ -108,13 +117,14 @@ TEST(Matrix, Determinant)
 
 TEST(Matrix, RowsAndColumns)
 {
-    Matrix<int> m(2, 3, 0);
+    Matrix<int> m(2, 3);
+    m.setAllValues(0);
     int rVal[3] = {1, 2, 3};
-    m.pushRow(Row<int>(3, rVal));
+    m.pushRow(Matrix<int>(1, 3, rVal));
     rVal[0] = 0;
     rVal[1] = 10;
     rVal[2] = 20;
-    m.insertRow(2, Row<int>(3, rVal));
+    m.insertRow(2, Matrix<int>(1, 3, rVal));
     ASSERT_EQ(m.getNumRows(), 4);
     ASSERT_EQ(m(2, 1), 10);
     ASSERT_EQ(m(3,2), 3);
@@ -122,21 +132,21 @@ TEST(Matrix, RowsAndColumns)
     rVal[0] = 4;
     rVal[1] = 17;
     rVal[2] = 23;
-    m.setRow(0, Row<int>(3, rVal));
+    m.setRow(0, Matrix<int>(1, 3, rVal));
     ASSERT_EQ(m(0, 2), 23);
 
     m(0, 2) = 67;
-    Row<int> r = m.getRow(0);
-    ASSERT_EQ(r.getWidth(), 3);
-    ASSERT_EQ(r(2), 67);
+    Matrix<int> r = m.getRow(0);
+    ASSERT_EQ(r.getNumColumns(), 3);
+    ASSERT_EQ(r(0, 2), 67);
 
     int cVal[4] = {11, 22, 33, 44};
-    m.pushColumn(Column<int>(4, cVal));
+    m.pushColumn(Matrix<int>(4, 1, cVal));
     cVal[0] = 0;
     cVal[1] = 100;
     cVal[2] = 200;
     cVal[2] = 300;
-    m.insertColumn(1, Column<int>(4, cVal));
+    m.insertColumn(1, Matrix<int>(4, 1, cVal));
     ASSERT_EQ(m.getNumColumns(), 5);
     ASSERT_EQ(m(3, 4), 44);
     ASSERT_EQ(m(1, 1), 100);
@@ -145,10 +155,19 @@ TEST(Matrix, RowsAndColumns)
     cVal[1] = 19;
     cVal[2] = 24;
     cVal[3] = 38;
-    m.setColumn(1, Column<int>(4, cVal));
+    m.setColumn(1, Matrix<int>(4, 1, cVal));
     ASSERT_EQ(m(1, 1), 19);
 
-    Column<int> c = m.getColumn(3);
-    ASSERT_EQ(c.getHeight(), 4);
-    ASSERT_EQ(c(1), 0);
+    Matrix<int> c = m.getColumn(3);
+    ASSERT_EQ(c.getNumRows(), 4);
+    ASSERT_EQ(c(1, 0), 0);
+
+    std::cout << m.toString() << std::endl;
+    m.removeRow(1);
+    std::cout << m.toString() << std::endl;
+    ASSERT_EQ(m(1, 2), 10);
+    m.removeColumn(2);
+    std::cout << m.toString() << std::endl;
+    ASSERT_EQ(m(1, 2), 20);
+
 }
